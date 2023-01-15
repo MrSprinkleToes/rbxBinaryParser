@@ -1,0 +1,20 @@
+{
+  "name": "rbxbinaryparser",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "del dist\\rbxBinaryParser.js && ncc build src/index.js && ren dist\\index.js rbxBinaryParser.js",
+    "test": "ncc run dist\\rbxBinaryParser.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.1"
+  },
+  "dependencies": {
+    "lz4js": "^0.2.0"
+  }
+}
