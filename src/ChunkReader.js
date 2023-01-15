@@ -7,7 +7,8 @@
 // Chunks are compressed using LZ4
 // If the chunk is not compressed, CompressedLength == 0 and UncompressedLength == the length of the data
 
-var lz4 = require("lz4js");
+// var lz4 = require("lz4js");
+import LZ4BlockJS from "./lz4";
 
 /**
  * Reads a chunk of data
@@ -32,17 +33,16 @@ export default function ReadChunk(data, offset) {
 		chunkData[i] = data.getUint8(offset + 16 + i);
 	}
 
+	var payload;
 	// Decompress the data if it is compressed
 	if (compressedLength != 0) {
-		const decompressed = lz4.decompress(chunkData, uncompressedLength); // TODO: figure out why magic number is invalid
-
-		return {
-			signature,
-			compressedLength,
-			uncompressedLength,
-			dataLength,
+		payload = LZ4BlockJS.prototype.decodeBlock(
 			chunkData,
-		};
+			0,
+			uncompressedLength
+		);
+	} else {
+		payload = chunkData;
 	}
 
 	return {
@@ -50,6 +50,6 @@ export default function ReadChunk(data, offset) {
 		compressedLength,
 		uncompressedLength,
 		dataLength,
-		chunkData,
+		payload,
 	};
 }
