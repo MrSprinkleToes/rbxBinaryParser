@@ -93,6 +93,7 @@ export default function decode(buffer) {
 	// for each chunk get the signature, compressed length, uncompressed length, and data using ReadChunk(chunk: ArrayBuffer)
 	var chunkPos = headerPos + 16;
 	var chunk = {};
+	var instances = [];
 	while (chunkPos < buffer.length && chunk.signature !== "END\x00") {
 		chunk = ReadChunk(data, chunkPos);
 		// console.log("Chunk:", chunk);
@@ -141,14 +142,28 @@ export default function decode(buffer) {
 			console.log("INST instLength:", instLength);
 			console.log("INST instIds:", instIds);
 			console.log("INST isService:", isService);
+
+			instances[classId] = {
+				className,
+				instances: [],
+			};
+
+			for (let i = 0; i < instLength; i++) {
+				instances[classId].instances.push({ className });
+			}
 		} else if (chunk.signature == "PROP") {
 			const classId = payload.getInt32(0, true);
 			const [propName, propNameLength] = ReadString(payload, 4);
-			const value = ReadPropertyValue(payload, 4 + 4 + propNameLength);
+			const value = ReadPropertyValue(
+				payload,
+				4 + 4 + propNameLength,
+				instances[classId].instances.length
+			);
 
 			console.log("PROP classId:", classId);
 			console.log("PROP propName:", propName);
 			console.log("PROP value type:", value.type);
+			console.log("PROP values:", value.values);
 		}
 	}
 

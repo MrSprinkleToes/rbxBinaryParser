@@ -89,12 +89,90 @@ function ReadReferences(data, offset, length) {
 	return refs;
 }
 
-function ReadPropertyValue(data, offset) {
+function float(longNum) {
+	const exponent = longNum >>> 24;
+	if (exponent === 0) {
+		return 0;
+	}
+	const floatNum =
+		2 ** (exponent - 127) * (1 + ((longNum >>> 1) & 0x7fffff) / 0x7fffff);
+	return longNum & 1 ? -floatNum : floatNum;
+}
+
+function interleaveFloat(data, offset, itemCount) {
+	return interleaveUint32(data, offset, itemCount, (val) => float(val));
+}
+
+function ReadPropertyValue(data, offset, instCount) {
 	const typeId = data.getUint8(offset);
 	const type = valueTypes[typeId];
 
+	var values = [];
+	switch (type) {
+		case "String":
+			var off = 0;
+			for (let i = 0; i < instCount; i++) {
+				const [str, len] = ReadString(data, offset + 1 + off);
+				values[i] = str;
+				off += len + 4;
+			}
+			break;
+		case "Bool":
+			for (let i = 0; i < instCount; i++) {
+				values[i] = data.getUint8(offset + 1 + i) === 1;
+			}
+			break;
+		case "Int":
+			// is encoded as zint32b~4
+			values = interleaveInt32(data, offset + 1, instCount);
+			break;
+		case "Float":
+			// is encoded as rfloat32b~4
+			values = interleaveFloat(data, offset + 1, instCount);
+			break;
+		case "Double":
+			// TODO: implement
+			break;
+		case "UDim":
+			// TODO: implement
+			break;
+		case "UDim2":
+			// TODO: implement
+			break;
+		case "Ray":
+			// TODO: implement
+			break;
+		case "Faces":
+			// TODO: implement
+			break;
+		case "Axes":
+			// TODO: implement
+			break;
+		case "BrickColor":
+			// TODO: implement
+			break;
+		case "Color3":
+			// TODO: implement
+			break;
+		case "Vector2":
+			// TODO: implement
+			break;
+		case "Vector3":
+			const x = interleaveFloat(data, offset + 1, instCount);
+			const y = interleaveFloat(data, offset + 1 + instCount * 4, instCount);
+			const z = interleaveFloat(data, offset + 1 + instCount * 8, instCount);
+
+			for (let i = 0; i < instCount; i++) {
+				values[i] = { x: x[i], y: y[i], z: z[i] };
+			}
+			break;
+		default:
+			values = null;
+	}
+
 	return {
 		type,
+		values,
 	};
 }
 
