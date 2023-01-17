@@ -6,8 +6,6 @@ import {
 import ReadChunk from "./ChunkReader";
 import { arraysEqual } from "./util";
 
-const fs = require("fs");
-
 // Decoding roblox binary files
 // Starts with a signature of type [14]uint8
 // Then a version of type uint16
@@ -57,8 +55,9 @@ const signature = [
 ];
 const signatureLength = 14;
 
-export default function decode(buffer) {
-	const data = new DataView(buffer.buffer);
+function decode(buffer) {
+	const start = performance.now();
+	const data = new DataView(buffer);
 
 	// Get the position of the signature (might not be 0)
 	var sigPos = 0;
@@ -94,7 +93,9 @@ export default function decode(buffer) {
 	var chunkPos = headerPos + 16;
 	var chunk = {};
 	var instances = [];
-	while (chunkPos < buffer.length && chunk.signature !== "END\x00") {
+	var classes = [];
+	var output = [];
+	while (chunkPos < buffer.byteLength && chunk.signature !== "END\x00") {
 		chunk = ReadChunk(data, chunkPos);
 		// console.log("Chunk:", chunk);
 		chunkPos += 16 + chunk.dataLength;
@@ -115,8 +116,8 @@ export default function decode(buffer) {
 				entries.push({ key, value });
 			}
 
-			console.log("META length:", arrayLength);
-			console.log("META entries:", entries);
+			// console.log("META length:", arrayLength);
+			// console.log("META entries:", entries);
 		} else if (chunk.signature == "SSTR") {
 			// SSTR is currently unused
 		} else if (chunk.signature == "INST") {
@@ -136,20 +137,23 @@ export default function decode(buffer) {
 				);
 			}
 
-			console.log("INST classId:", classId);
-			console.log("INST className:", className);
-			console.log("INST hasService:", hasService);
-			console.log("INST instLength:", instLength);
-			console.log("INST instIds:", instIds);
-			console.log("INST isService:", isService);
+			// console.log("INST classId:", classId);
+			// console.log("INST className:", className);
+			// console.log("INST hasService:", hasService);
+			// console.log("INST instLength:", instLength);
+			// console.log("INST instIds:", instIds);
+			// console.log("INST isService:", isService);
 
-			instances[classId] = {
+			classes[classId] = {
 				className,
 				instances: [],
 			};
 
+			var instId = 0;
 			for (let i = 0; i < instLength; i++) {
-				instances[classId].instances.push({ className });
+				instId += instIds[i];
+				instances[instId] = { ClassName: className, Children: [] };
+				classes[classId].instances.push(instId);
 			}
 		} else if (chunk.signature == "PROP") {
 			const classId = payload.getInt32(0, true);
@@ -157,21 +161,69 @@ export default function decode(buffer) {
 			const value = ReadPropertyValue(
 				payload,
 				4 + 4 + propNameLength,
-				instances[classId].instances.length
+				classes[classId].instances.length
 			);
 
-			console.log("PROP classId:", classId);
-			console.log("PROP propName:", propName);
-			console.log("PROP value type:", value.type);
-			console.log("PROP values:", value.values);
+			if (value.values) {
+				for (let i = 0; i < classes[classId].instances.length; i++) {
+					const instId = classes[classId].instances[i];
+					instances[instId][propName] = value.values[i];
+				}
+			}
+
+			// console.log("PROP classId:", classId);
+			// console.log("PROP propName:", propName);
+			// console.log("PROP value type:", value.type);
+			// console.log("PROP values:", value.values);
+		} else if (chunk.signature == "PRNT") {
+			const assocLength = payload.getUint32(1, true);
+			const children = ReadReferences(payload, 5, assocLength);
+			const parents = ReadReferences(payload, 5 + assocLength * 4, assocLength);
+
+			var childId = 0;
+			var parentId = 0;
+			for (let i = 0; i < assocLength; i++) {
+				childId += children[i];
+				parentId += parents[i];
+
+				const child = instances[childId];
+
+				if (parentId < 0) {
+					// console.log("PRNT child", child, childId, "is root");
+					output[childId] = child;
+				} else {
+					const parent = instances[parentId];
+
+					parent.Children.push(child);
+
+					// console.log(
+					// 	"PRNT child",
+					// 	child,
+					// 	childId,
+					// 	"is child of parent",
+					// 	parent
+					// );
+				}
+			}
+
+			// console.log("PRNT assocLength:", assocLength);
+			// console.log("PRNT children:", children);
+			// console.log("PRNT parents:", parents);
 		}
 	}
 
-	console.log("Finished decoding file.");
+	// console.log("Output:", output);
+	console.log(
+		"Finished decoding file.\nTime elapsed:",
+		performance.now() - start,
+		"ms"
+	);
 
-	return;
+	return output;
 }
 
 // test
-const testFile = fs.readFileSync("test.rbxm");
-decode(testFile);
+// const testFile = fs.readFileSync("test.rbxm");
+// decode(testFile);
+
+export { decode };
