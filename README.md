@@ -4,7 +4,7 @@ Roblox binary file reader for JavaScript.
 
 # Using
 
-The latest version can be found at `dist/rbxBinaryParser.js`
+The latest versions can be found in `dist/server` and `dist/client`.
 
 WIP
 
