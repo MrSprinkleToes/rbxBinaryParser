@@ -61,7 +61,7 @@ function decode(buffer) {
 
 	// Get the position of the signature (might not be 0)
 	var sigPos = 0;
-	for (var i = 0; i < buffer.length; i++) {
+	for (var i = 0; i < buffer.byteLength; i++) {
 		if (data.getUint8(i) == signature[0]) {
 			sigPos = i;
 			break;

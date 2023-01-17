@@ -4,11 +4,11 @@ module.exports = {
 		outputModule: true,
 	},
 	output: {
-		path: __dirname + "/dist",
+		path: __dirname + "/dist/client",
 		filename: "rbxBinaryParser.js",
 		library: {
 			type: "module",
 		},
 	},
-	mode: "development",
+	mode: "production",
 };
