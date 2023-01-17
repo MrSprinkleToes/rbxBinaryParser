@@ -80,13 +80,7 @@ function ReadString(data, offset) {
 }
 
 function ReadReferences(data, offset, length) {
-	const d = [];
-	for (let i = 0; i < length; i++) {
-		d.push(data.getUint8(offset + i));
-	}
-	const refs = interleaveInt32(data, offset, length);
-
-	return refs;
+	return interleaveInt32(data, offset, length);
 }
 
 function float(longNum) {
