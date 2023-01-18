@@ -1,4 +1,4 @@
-import { decode } from "./rbxBinaryParser.js";
+import { decode } from "/dist/rbxBinaryParser.js"; // ../../dist/client/rbxBinaryParser.js
 
 const reader = new FileReader();
 reader.addEventListener("load", (e) => {
