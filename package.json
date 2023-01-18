@@ -4,9 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build:win": "webpack build --config webpack.config.%npm_config_target%.js",
-    "build": "webpack build --config webpack.config.${npm_config_target}.js",
-	"buildAll": "webpack build --config webpack.config.server.js && webpack build --config webpack.config.client.js",
+    "build:server": "webpack build --config webpack.config.server.js --mode=production",
+    "build:client": "webpack build --config webpack.config.client.js --mode=production",
+	"build": "webpack build --config webpack.config.server.js --mode=production && webpack build --config webpack.config.client.js --mode=production",
+	"buildDev:server": "webpack build --config webpack.config.server.js --mode=development",
+	"buildDev:client": "webpack build --config webpack.config.client.js --mode=development",
+	"buildDev": "webpack build --config webpack.config.server.js --mode=development && webpack build --config webpack.config.client.js --mode=development",
     "exampleWeb": "node example/web/server.js",
 	"exampleNode": "node example/nodejs/index.js"
   },
