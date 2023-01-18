@@ -160,6 +160,31 @@ function ReadPropertyValue(data, offset, instCount) {
 				values[i] = { x: x[i], y: y[i], z: z[i] };
 			}
 			break;
+		case "Vector2int16":
+			// TODO: implement
+			break;
+		case "CFrame":
+			var cf = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+			const posX = interleaveFloat(data, offset + 1 + 38, instCount);
+			const posY = interleaveFloat(
+				data,
+				offset + 1 + 38 + instCount * 4,
+				instCount
+			);
+			const posZ = interleaveFloat(
+				data,
+				offset + 1 + 38 + instCount * 8,
+				instCount
+			);
+			cf[0] = posX;
+			cf[1] = posY;
+			cf[2] = posZ;
+
+			values = {
+				Position: { x: posX, y: posY, z: posZ },
+				Components: cf,
+			};
 		default:
 			values = null;
 	}
