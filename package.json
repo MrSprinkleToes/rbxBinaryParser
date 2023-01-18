@@ -6,6 +6,7 @@
   "scripts": {
     "build:win": "webpack build --config webpack.config.%npm_config_target%.js",
     "build": "webpack build --config webpack.config.${npm_config_target}.js",
+	"buildAll": "webpack build --config webpack.config.server.js && webpack build --config webpack.config.client.js",
     "exampleWeb": "node example/web/server.js",
 	"exampleNode": "node example/nodejs/index.js"
   },

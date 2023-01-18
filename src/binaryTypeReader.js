@@ -41,6 +41,14 @@ const valueTypes = {
 	0x1f: "UniqueId",
 	0x20: "Font",
 };
+const faces = [
+	[1, 0, 0],
+	[0, 1, 0],
+	[0, 0, 1],
+	[-1, 0, 0],
+	[0, -1, 0],
+	[0, 0, -1],
+];
 
 function interleaveUint32(data, offset, itemCount, callbackFn) {
 	const results = new Array(itemCount);
@@ -164,27 +172,53 @@ function ReadPropertyValue(data, offset, instCount) {
 			// TODO: implement
 			break;
 		case "CFrame":
-			var cf = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+			var off = 0;
+			for (let i = 0; i < instCount; i++) {
+				var cf = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+				const rotId = data.getUint8(offset + 1 + off);
+				off += 1;
 
-			const posX = interleaveFloat(data, offset + 1 + 38, instCount);
+				if (rotId != 0) {
+					const right = faces[Math.floor((rotId - 1) / 6)];
+					const up = faces[Math.floor(rotId - 1) % 6];
+					const back = [
+						right[1] * up[2] - up[1] * right[2],
+						right[2] * up[0] - up[2] * right[0],
+						right[0] * up[1] - up[0] * right[1],
+					];
+
+					for (let j = 0; j < 3; j++) {
+						cf[3 + j * 3] = right[j];
+						cf[4 + j * 3] = up[j];
+						cf[5 + j * 3] = back[j];
+					}
+				} else {
+					for (let j = 0; j < 9; j++) {
+						cf[i + 3] = data.getUint32(offset + 1 + off);
+						off += 4;
+					}
+				}
+			}
+
+			const posX = interleaveFloat(data, offset + 1 + off, instCount);
 			const posY = interleaveFloat(
 				data,
-				offset + 1 + 38 + instCount * 4,
+				offset + 1 + off + instCount * 4,
 				instCount
 			);
 			const posZ = interleaveFloat(
 				data,
-				offset + 1 + 38 + instCount * 8,
+				offset + 1 + off + instCount * 8,
 				instCount
 			);
-			cf[0] = posX;
-			cf[1] = posY;
-			cf[2] = posZ;
 
-			values = {
-				Position: { x: posX, y: posY, z: posZ },
-				Components: cf,
-			};
+			for (let i = 0; i < instCount; i++) {
+				values[i] = {
+					Position: { x: posX[i], y: posY[i], z: posZ[i] },
+					Components: cf,
+				};
+			}
+			break;
 		default:
 			values = null;
 	}
