@@ -17,8 +17,7 @@ This can be done by running `npm i --save-dev webpack webpack-cli`. (make sure y
 
 With webpack installed, open the project directory and run:
 
-```
-npm run build --target=[server,client]
-```
-
-Setting the target to server will build for nodejs, while client will build for the browser.
+| Command | Function |
+| ------------- | ------------- |
+| `npm run build --target=[server,client]` | Builds for the specified target. If you are building on Windows, use `build:win`. |
+| `npm run buildAll` | Builds for both targets. |
