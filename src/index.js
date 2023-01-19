@@ -157,7 +157,7 @@ function decode(buffer) {
 			}
 		} else if (chunk.signature == "PROP") {
 			const classId = payload.getInt32(0, true);
-			const [propName, propNameLength] = ReadString(payload, 4);
+			var [propName, propNameLength] = ReadString(payload, 4);
 			const value = ReadPropertyValue(
 				payload,
 				4 + 4 + propNameLength,
@@ -167,6 +167,8 @@ function decode(buffer) {
 			if (value.values) {
 				for (let i = 0; i < classes[classId].instances.length; i++) {
 					const instId = classes[classId].instances[i];
+					propName = propName.charAt(0).toUpperCase() + propName.slice(1);
+					if (propName == "Color3uint8") propName = "Color3";
 					instances[instId][propName] = value.values[i];
 				}
 			}

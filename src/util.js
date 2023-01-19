@@ -13,3 +13,11 @@ export function arraysEqual(a, b) {
 	}
 	return false;
 }
+
+export function rotMatrixToEulerAngles(m) {
+	var x = Math.atan2(m[7], m[8]);
+	var y = Math.atan2(-m[6], Math.sqrt(m[7] * m[7] + m[8] * m[8]));
+	var z = Math.atan2(m[3], m[0]);
+
+	return [(x * 180) / Math.PI, (y * 180) / Math.PI, (z * 180) / Math.PI];
+}
