@@ -19,5 +19,9 @@ With webpack installed, open the project directory and run:
 
 | Command | Function |
 | ------------- | ------------- |
-| `npm run build --target=[server,client]` | Builds for the specified target. If you are building on Windows, use `build:win`. |
-| `npm run buildAll` | Builds for both targets. |
+| `npm run build` | Builds for both server and client in production mode. |
+| `npm run build:[client,server]` | Builds for either server or client in production mode. |
+| `npm run buildDev` | Builds for both server and client in development mode. |
+| `npm run buildDev:[client,server]` | Builds for either server or client in development mode. |
+
+Production builds are minified and have little sourcemapping, while development builds are less minified and have heavier sourcemapping to allow for easier debugging.
