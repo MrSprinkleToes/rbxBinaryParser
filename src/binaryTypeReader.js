@@ -15,8 +15,8 @@ const valueTypes = {
 	0x03: "Int",
 	0x04: "Float",
 	0x05: "Double",
-	0x06: "Udim",
-	0x07: "Udim2",
+	0x06: "UDim",
+	0x07: "UDim2",
 	0x08: "Ray",
 	0x09: "Faces",
 	0x0a: "Axes",
@@ -70,15 +70,15 @@ const rotIds = {
 	0x23: [+0, +0, -1, +0, -1, -0, -1, +0, -0],
 };
 
-function interleaveUint32(data, offset, itemCount, callbackFn) {
+function interleaveUint32(data, byteOffset, itemCount, callbackFn) {
 	const results = new Array(itemCount);
 	const byteTotal = itemCount * 4;
 
 	for (let i = 0; i < itemCount; i++) {
-		let val = data.getUint8(offset + i) << 24;
-		val += data.getUint8(offset + ((i + itemCount) % byteTotal)) << 16;
-		val += data.getUint8(offset + ((i + itemCount * 2) % byteTotal)) << 8;
-		val += data.getUint8(offset + ((i + itemCount * 3) % byteTotal));
+		let val = data.getUint8(byteOffset + i) << 24;
+		val += data.getUint8(byteOffset + ((i + itemCount) % byteTotal)) << 16;
+		val += data.getUint8(byteOffset + ((i + itemCount * 2) % byteTotal)) << 8;
+		val += data.getUint8(byteOffset + ((i + itemCount * 3) % byteTotal));
 
 		if (callbackFn) {
 			results[i] = callbackFn(val);
@@ -90,12 +90,12 @@ function interleaveUint32(data, offset, itemCount, callbackFn) {
 	return results;
 }
 
-function interleaveUint8(data, offset, itemCount, callbackFn) {
+function interleaveUint8(data, byteOffset, itemCount, callbackFn) {
 	const results = new Array(itemCount);
 	// const byteTotal = itemCount * 4;
 
 	for (let i = 0; i < itemCount; i++) {
-		let val = data.getUint8(offset + i);
+		let val = data.getUint8(byteOffset + i);
 
 		if (callbackFn) {
 			results[i] = callbackFn(val);
@@ -107,31 +107,31 @@ function interleaveUint8(data, offset, itemCount, callbackFn) {
 	return results;
 }
 
-function interleaveInt32(data, offset, itemCount) {
-	return interleaveUint32(data, offset, itemCount, (val) =>
+function interleaveInt32(data, byteOffset, itemCount) {
+	return interleaveUint32(data, byteOffset, itemCount, (val) =>
 		val % 2 === 1 ? -(val + 1) / 2 : val / 2
 	);
 }
 
-function interleaveInt8(data, offset, itemCount) {
-	return interleaveUint8(data, offset, itemCount, (val) =>
+function interleaveInt8(data, byteOffset, itemCount) {
+	return interleaveUint8(data, byteOffset, itemCount, (val) =>
 		val % 2 === 1 ? -(val + 1) / 2 : val / 2
 	);
 }
 
-function ReadString(data, offset) {
-	var length = data.getUint32(offset, true);
+function ReadString(data, byteOffset) {
+	var length = data.getUint32(byteOffset, true);
 	var str = "";
 
 	for (let i = 0; i < length; i++) {
-		str += String.fromCharCode(data.getUint8(offset + 4 + i));
+		str += String.fromCharCode(data.getUint8(byteOffset + 4 + i));
 	}
 
 	return [str, length];
 }
 
-function ReadReferences(data, offset, length) {
-	return interleaveInt32(data, offset, length);
+function ReadReferences(data, byteOffset, length) {
+	return interleaveInt32(data, byteOffset, length);
 }
 
 function float(longNum) {
@@ -144,12 +144,12 @@ function float(longNum) {
 	return longNum & 1 ? -floatNum : floatNum;
 }
 
-function interleaveFloat(data, offset, itemCount) {
-	return interleaveUint32(data, offset, itemCount, (val) => float(val));
+function interleaveFloat(data, byteOffset, itemCount) {
+	return interleaveUint32(data, byteOffset, itemCount, (val) => float(val));
 }
 
-function ReadPropertyValue(data, offset, instCount) {
-	const typeId = data.getUint8(offset);
+function ReadPropertyValue(data, byteOffset, instCount) {
+	const typeId = data.getUint8(byteOffset);
 	const type = valueTypes[typeId];
 
 	var values = [];
@@ -157,29 +157,40 @@ function ReadPropertyValue(data, offset, instCount) {
 		case "String":
 			var off = 0;
 			for (let i = 0; i < instCount; i++) {
-				const [str, len] = ReadString(data, offset + 1 + off);
+				const [str, len] = ReadString(data, byteOffset + 1 + off);
 				values[i] = str;
 				off += len + 4;
 			}
 			break;
 		case "Bool":
 			for (let i = 0; i < instCount; i++) {
-				values[i] = data.getUint8(offset + 1 + i) === 1;
+				values[i] = data.getUint8(byteOffset + 1 + i) === 1;
 			}
 			break;
 		case "Int":
 			// is encoded as zint32b~4
-			values = interleaveInt32(data, offset + 1, instCount);
+			values = interleaveInt32(data, byteOffset + 1, instCount);
 			break;
 		case "Float":
 			// is encoded as rfloat32b~4
-			values = interleaveFloat(data, offset + 1, instCount);
+			values = interleaveFloat(data, byteOffset + 1, instCount);
 			break;
 		case "Double":
-			// TODO: implement
+			for (let i = 0; i < instCount; i++) {
+				values[i] = data.getFloat64(byteOffset + 1 + i * 8, true);
+			}
 			break;
 		case "UDim":
-			// TODO: implement
+			const scale = interleaveFloat(data, byteOffset + 1, instCount);
+			const offset = interleaveInt32(
+				data,
+				byteOffset + 1 + instCount * 4,
+				instCount
+			);
+
+			for (let i = 0; i < instCount; i++) {
+				values[i] = { Scale: scale[i], Offset: offset[i] };
+			}
 			break;
 		case "UDim2":
 			// TODO: implement
@@ -197,9 +208,9 @@ function ReadPropertyValue(data, offset, instCount) {
 			// TODO: implement
 			break;
 		case "Color3":
-			var r = interleaveFloat(data, offset + 1, instCount);
-			var g = interleaveFloat(data, offset + 1 + instCount * 4, instCount);
-			var b = interleaveFloat(data, offset + 1 + instCount * 8, instCount);
+			var r = interleaveFloat(data, byteOffset + 1, instCount);
+			var g = interleaveFloat(data, byteOffset + 1 + instCount * 4, instCount);
+			var b = interleaveFloat(data, byteOffset + 1 + instCount * 8, instCount);
 
 			for (let i = 0; i < instCount; i++) {
 				values[i] = { R: r[i], G: g[i], B: b[i] };
@@ -209,9 +220,17 @@ function ReadPropertyValue(data, offset, instCount) {
 			// TODO: implement
 			break;
 		case "Vector3":
-			const x = interleaveFloat(data, offset + 1, instCount);
-			const y = interleaveFloat(data, offset + 1 + instCount * 4, instCount);
-			const z = interleaveFloat(data, offset + 1 + instCount * 8, instCount);
+			const x = interleaveFloat(data, byteOffset + 1, instCount);
+			const y = interleaveFloat(
+				data,
+				byteOffset + 1 + instCount * 4,
+				instCount
+			);
+			const z = interleaveFloat(
+				data,
+				byteOffset + 1 + instCount * 8,
+				instCount
+			);
 
 			for (let i = 0; i < instCount; i++) {
 				values[i] = { X: x[i], Y: y[i], Z: z[i] };
@@ -226,7 +245,7 @@ function ReadPropertyValue(data, offset, instCount) {
 
 			for (let i = 0; i < instCount; i++) {
 				var cf = [0, 0, 0];
-				var rotId = data.getUint8(offset + 1 + off);
+				var rotId = data.getUint8(byteOffset + 1 + off);
 				off += 1;
 
 				if (rotId !== 0) {
@@ -234,7 +253,7 @@ function ReadPropertyValue(data, offset, instCount) {
 					// off += 36;
 				} else {
 					for (let j = 0; j < 9; j++) {
-						cf[j + 3] = data.getFloat32(offset + 1 + off, true);
+						cf[j + 3] = data.getFloat32(byteOffset + 1 + off, true);
 						off += 4;
 					}
 				}
@@ -242,15 +261,15 @@ function ReadPropertyValue(data, offset, instCount) {
 				cfs[i] = cf;
 			}
 
-			const posX = interleaveFloat(data, offset + 1 + off, instCount);
+			const posX = interleaveFloat(data, byteOffset + 1 + off, instCount);
 			const posY = interleaveFloat(
 				data,
-				offset + 1 + off + instCount * 4,
+				byteOffset + 1 + off + instCount * 4,
 				instCount
 			);
 			const posZ = interleaveFloat(
 				data,
-				offset + 1 + off + instCount * 8,
+				byteOffset + 1 + off + instCount * 8,
 				instCount
 			);
 
@@ -276,9 +295,9 @@ function ReadPropertyValue(data, offset, instCount) {
 			}
 			break;
 		case "Color3uint8":
-			var r = interleaveUint8(data, offset + 1, instCount);
-			var g = interleaveUint8(data, offset + 1 + instCount, instCount);
-			var b = interleaveUint8(data, offset + 1 + instCount * 2, instCount);
+			var r = interleaveUint8(data, byteOffset + 1, instCount);
+			var g = interleaveUint8(data, byteOffset + 1 + instCount, instCount);
+			var b = interleaveUint8(data, byteOffset + 1 + instCount * 2, instCount);
 
 			for (let i = 0; i < instCount; i++) {
 				values[i] = {
