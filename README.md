@@ -1,12 +1,10 @@
-# rbxBinaryParser (WIP)
+# rbxBinaryParser
 
 Roblox binary file reader for JavaScript.
 
 # Using
 
 The latest versions can be found in `dist/server` and `dist/client`.
-
-WIP
 
 # Building
 
