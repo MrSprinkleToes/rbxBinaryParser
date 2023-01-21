@@ -6,6 +6,15 @@ Roblox binary file reader for JavaScript.
 
 The latest versions can be found in `dist/server` and `dist/client`.
 
+To use this library, copy either `dist/client/rbxBinaryParser.js` or `dist/client/server/rbxBinaryParser.js` to your project.
+
+You can import the library like so:
+| Server | Browser |
+| ------ | ------- |
+| `const { decode } = require("path/to/rbxBinaryParser");` | `import { decode } from "rbxBinaryParser.js";` |
+
+To decode a Roblox binary file (`rbxm` or `rbxl`), you need to pass it as an [ArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer) to the `decode` function. This will return an array containing an `Object` representing each instance in the file. These objects contain the instance's properties and their values, along with a `.Children` property which is an array of objects representing the children of the instance.
+
 # Building
 
 Contributions to this project are welcome!
