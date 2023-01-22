@@ -18,7 +18,7 @@ jobs:
         echo "Latest version: $version"
         lastversion=$(cat rbx_version.txt)
         echo "Last version: $lastversion"
-        if [[ $version -ne $lastversion ]]
+        if [ $version != $lastversion ]
         then
           echo "NEW=1" >> $GITHUB_ENV
           echo "New version!"
