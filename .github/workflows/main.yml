@@ -21,6 +21,8 @@ jobs:
         if [ $version != $lastversion ]
         then
           echo "NEW=1" >> $GITHUB_ENV
+          echo "RBX_VERSION=$version" >> $GITHUB_ENV
+          echo "$version" > rbx_version.txt
           echo "New version!"
         else
           echo "NEW=0" >> $GITHUB_ENV
@@ -30,7 +32,7 @@ jobs:
     - name: Download latest API dump.
       if: ${{ env.NEW == 1 }}
       run: |
-        wget https://setup.rbxcdn.com/${version}-API-Dump.json -O src/ApiDump.json
+        wget https://setup.rbxcdn.com/${RBX_VERSION}-API-Dump.json -O src/ApiDump.json
         echo "API dump saved to 'src/ApiDump.json'."
     
     - name: Git auto commit.
