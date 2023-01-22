@@ -16,7 +16,8 @@ jobs:
       run: |
         version=$(wget -qO- https://setup.rbxcdn.com/versionQTStudio)
         echo "Latest version: $version"
-        lastversion=$(cat .github/rbx_version.txt)
+        lastversion=$(cat rbx_version.txt)
+        echo "Last version: $lastversion"
         if [[ $version -eq $lastversion ]]
         then
           echo "NEW=1" >> "$GITHUB_ENV"
