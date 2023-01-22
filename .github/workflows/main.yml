@@ -12,7 +12,7 @@ jobs:
       
     - name: Download latest API dump.
       run: |
-        wget https://setup.rbxcdn.com/version-2bc6aa9c27a14060-API-Dump.json -O ./src/apiDump.json
+        wget https://setup.rbxcdn.com/version-2bc6aa9c27a14060-API-Dump.json -O ../../src/apiDump.json
         echo "API dump saved to './src/apiDump.json'."
     
     - name: Git Auto Commit
