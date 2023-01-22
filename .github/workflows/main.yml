@@ -1,5 +1,4 @@
-on:
-  workflow_dispatch:
+on: workflow_dispatch
 
 jobs:
   apidump:
@@ -13,9 +12,9 @@ jobs:
       
     - name: Download latest API dump.
       run: |
-        wget -O apiDump.json https://setup.rbxcdn.com/version-2bc6aa9c27a14060-API-Dump.json
-        echo "API dump saved to 'apiDump.json'."
+        wget https://setup.rbxcdn.com/version-2bc6aa9c27a14060-API-Dump.json -O ./src/apiDump.json
+        echo "API dump saved to './src/apiDump.json'."
     
-    - uses: stefanzweifel/git-auto-commit-action@v4
-      with:
-        commit_message: Automatically update API dump
+    - name: Git Auto Commit
+      uses: stefanzweifel/git-auto-commit-action@v4.16.0
+      
