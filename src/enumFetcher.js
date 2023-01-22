@@ -1,4 +1,4 @@
-import apiDump from "./apiDump.json";
+import ApiDump from "./ApiDump.json";
 
 /**
  * Gets the enum's name from a property name and class name
@@ -7,9 +7,9 @@ import apiDump from "./apiDump.json";
  * @returns
  */
 function getEnumName(propName, className) {
-	for (let i = 0; i < apiDump.Classes.length; i++) {
-		if (apiDump.Classes[i].Name.toLowerCase() == className.toLowerCase()) {
-			var members = apiDump.Classes[i].Members;
+	for (let i = 0; i < ApiDump.Classes.length; i++) {
+		if (ApiDump.Classes[i].Name.toLowerCase() == className.toLowerCase()) {
+			var members = ApiDump.Classes[i].Members;
 			for (let j = 0; j < members.length; j++) {
 				var member = members[j];
 				if (
@@ -21,10 +21,10 @@ function getEnumName(propName, className) {
 				}
 			}
 			if (
-				apiDump.Classes[i].Superclass &&
-				apiDump.Classes[i].Superclass != "<<<ROOT>>>"
+				ApiDump.Classes[i].Superclass &&
+				ApiDump.Classes[i].Superclass != "<<<ROOT>>>"
 			) {
-				return getEnumName(propName, apiDump.Classes[i].Superclass);
+				return getEnumName(propName, ApiDump.Classes[i].Superclass);
 			}
 		}
 	}
@@ -37,8 +37,8 @@ function getEnumName(propName, className) {
  * @returns
  */
 function getEnumValue(enumName, value) {
-	for (let i = 0; i < apiDump.Enums.length; i++) {
-		var token = apiDump.Enums[i];
+	for (let i = 0; i < ApiDump.Enums.length; i++) {
+		var token = ApiDump.Enums[i];
 		if (token.Name.toLowerCase() == enumName.toLowerCase()) {
 			for (let j = 0; j < token.Items.length; j++) {
 				if (token.Items[j].Value == value) {

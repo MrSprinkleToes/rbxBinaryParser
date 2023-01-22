@@ -2,7 +2,7 @@
 // Length: uint32 - Length of the string
 // Bytes: []uint8 - The string
 
-import { getEnumName, getEnumValue } from "./enumFetcher";
+import { getEnumName, getEnumValue } from "./EnumFetcher";
 import { rotMatrixToEulerAngles } from "./util";
 
 // References: []zint32b~4
@@ -301,50 +301,6 @@ function interleaveUint32(data, byteOffset, itemCount, callbackFn) {
 	return results;
 }
 
-function interleaveUint8(data, byteOffset, itemCount, callbackFn) {
-	const results = new Array(itemCount);
-	// const byteTotal = itemCount * 4;
-
-	for (let i = 0; i < itemCount; i++) {
-		let val = data.getUint8(byteOffset + i);
-
-		if (callbackFn) {
-			results[i] = callbackFn(val);
-		} else {
-			results[i] = val;
-		}
-	}
-
-	return results;
-}
-
-function interleaveInt32(data, byteOffset, itemCount) {
-	return interleaveUint32(data, byteOffset, itemCount, (val) =>
-		val % 2 === 1 ? -(val + 1) / 2 : val / 2
-	);
-}
-
-function interleaveInt8(data, byteOffset, itemCount) {
-	return interleaveUint8(data, byteOffset, itemCount, (val) =>
-		val % 2 === 1 ? -(val + 1) / 2 : val / 2
-	);
-}
-
-function ReadString(data, byteOffset) {
-	var length = data.getUint32(byteOffset, true);
-	var str = "";
-
-	for (let i = 0; i < length; i++) {
-		str += String.fromCharCode(data.getUint8(byteOffset + 4 + i));
-	}
-
-	return [str, length];
-}
-
-function ReadReferences(data, byteOffset, length) {
-	return interleaveInt32(data, byteOffset, length);
-}
-
 function float(longNum) {
 	const exponent = longNum >>> 24;
 	if (exponent === 0) {
@@ -359,67 +315,65 @@ function interleaveFloat(data, byteOffset, itemCount) {
 	return interleaveUint32(data, byteOffset, itemCount, (val) => float(val));
 }
 
-function ReadPropertyValue(data, byteOffset, instCount, className, propName) {
-	const typeId = data.getUint8(byteOffset);
+function ReadString(data) {
+	var length = data.uint32(true);
+	var str = "";
+
+	for (let i = 0; i < length; i++) {
+		str += String.fromCharCode(data.uint8());
+	}
+
+	return [str, length];
+}
+
+function ReadReferences(data, length) {
+	return data.interleavedInt32(length);
+}
+
+function ReadPropertyValue(data, instCount, className, propName) {
+	const typeId = data.uint8();
 	const type = valueTypes[typeId];
+	const byteOffset = data.byteOffset;
 
 	var values = [];
 	switch (type) {
 		case "String":
-			var off = 0;
 			for (let i = 0; i < instCount; i++) {
-				const [str, len] = ReadString(data, byteOffset + 1 + off);
+				const [str, len] = ReadString(data);
 				values[i] = str;
-				off += len + 4;
 			}
 			break;
 		case "Bool":
 			for (let i = 0; i < instCount; i++) {
-				values[i] = data.getUint8(byteOffset + 1 + i) === 1;
+				values[i] = data.uint8() === 1;
 			}
 			break;
 		case "Int":
 			// is encoded as zint32b~4
-			values = interleaveInt32(data, byteOffset + 1, instCount);
+			values = data.interleavedInt32(instCount);
 			break;
 		case "Float":
 			// is encoded as rfloat32b~4
-			values = interleaveFloat(data, byteOffset + 1, instCount);
+			values = data.interleavedFloat(instCount);
 			break;
 		case "Double":
 			for (let i = 0; i < instCount; i++) {
-				values[i] = data.getFloat64(byteOffset + 1 + i * 8, true);
+				values[i] = data.float64(true);
 			}
 			break;
 		case "UDim":
-			const scale = interleaveFloat(data, byteOffset + 1, instCount);
-			const offset = interleaveInt32(
-				data,
-				byteOffset + 1 + instCount * 4,
-				instCount
-			);
+			const scale = data.interleavedFloat(instCount);
+			const offset = data.interleavedInt32(instCount);
 
 			for (let i = 0; i < instCount; i++) {
 				values[i] = { Scale: scale[i], Offset: offset[i] };
 			}
 			break;
 		case "UDim2":
-			const scaleX = interleaveFloat(data, byteOffset + 1, instCount);
-			const scaleY = interleaveFloat(
-				data,
-				byteOffset + 1 + instCount * 4,
-				instCount
-			);
-			const offsetX = interleaveInt32(
-				data,
-				byteOffset + 1 + instCount * 8,
-				instCount
-			);
-			const offsetY = interleaveInt32(
-				data,
-				byteOffset + 1 + instCount * 12,
-				instCount
-			);
+			const scaleX = data.interleavedFloat(instCount);
+			const scaleY = data.interleavedFloat(instCount);
+			const offsetX = data.interleavedInt32(instCount);
+			const offsetY = data.interleavedInt32(instCount);
 
 			for (let i = 0; i < instCount; i++) {
 				values[i] = {
@@ -431,21 +385,21 @@ function ReadPropertyValue(data, byteOffset, instCount, className, propName) {
 		case "Ray":
 			for (let i = 0; i < instCount; i++) {
 				const origin = {
-					X: data.getFloat32(byteOffset + 1 + i * 24, true),
-					Y: data.getFloat32(byteOffset + 1 + i * 24 + 4, true),
-					Z: data.getFloat32(byteOffset + 1 + i * 24 + 8, true),
+					X: data.float32(true),
+					Y: data.float32(true),
+					Z: data.float32(true),
 				};
 				const direction = {
-					X: data.getFloat32(byteOffset + 1 + i * 24 + 12, true),
-					Y: data.getFloat32(byteOffset + 1 + i * 24 + 16, true),
-					Z: data.getFloat32(byteOffset + 1 + i * 24 + 20, true),
+					X: data.float32(true),
+					Y: data.float32(true),
+					Z: data.float32(true),
 				};
 				values[i] = { Origin: origin, Direction: direction };
 			}
 			break;
 		case "Faces":
 			for (let i = 0; i < instCount; i++) {
-				const faces = data.getUint8(byteOffset + 1 + i);
+				const faces = data.uint8();
 
 				values[i] = {
 					Right: !!(faces & 1),
@@ -459,7 +413,7 @@ function ReadPropertyValue(data, byteOffset, instCount, className, propName) {
 			break;
 		case "Axes":
 			for (let i = 0; i < instCount; i++) {
-				const axes = data.getUint8(byteOffset + 1 + i);
+				const axes = data.uint8();
 
 				values[i] = {
 					X: !!(axes & 1),
@@ -469,7 +423,7 @@ function ReadPropertyValue(data, byteOffset, instCount, className, propName) {
 			}
 			break;
 		case "BrickColor":
-			const brickColor = interleaveUint32(data, byteOffset + 1, instCount);
+			const brickColor = data.interleavedUint32(instCount);
 
 			for (let i = 0; i < instCount; i++) {
 				const color = brickColorIds[brickColor[i]];
@@ -483,26 +437,26 @@ function ReadPropertyValue(data, byteOffset, instCount, className, propName) {
 			}
 			break;
 		case "Color3":
-			var r = interleaveFloat(data, byteOffset + 1, instCount);
-			var g = interleaveFloat(data, byteOffset + 1 + instCount * 4, instCount);
-			var b = interleaveFloat(data, byteOffset + 1 + instCount * 8, instCount);
+			var r = data.interleavedFloat(instCount);
+			var g = data.interleavedFloat(instCount);
+			var b = data.interleavedFloat(instCount);
 
 			for (let i = 0; i < instCount; i++) {
 				values[i] = { R: r[i], G: g[i], B: b[i] };
 			}
 			break;
 		case "Vector2":
-			var x = interleaveFloat(data, byteOffset + 1, instCount);
-			var y = interleaveFloat(data, byteOffset + 1 + instCount * 4, instCount);
+			var y = data.interleavedFloat(instCount);
+			var x = data.interleavedFloat(instCount);
 
 			for (let i = 0; i < instCount; i++) {
 				values[i] = { X: x[i], Y: y[i] };
 			}
 			break;
 		case "Vector3":
-			var x = interleaveFloat(data, byteOffset + 1, instCount);
-			var y = interleaveFloat(data, byteOffset + 1 + instCount * 4, instCount);
-			var z = interleaveFloat(data, byteOffset + 1 + instCount * 8, instCount);
+			var x = data.interleavedFloat(instCount);
+			var y = data.interleavedFloat(instCount);
+			var z = data.interleavedFloat(instCount);
 
 			for (let i = 0; i < instCount; i++) {
 				values[i] = { X: x[i], Y: y[i], Z: z[i] };
@@ -511,44 +465,32 @@ function ReadPropertyValue(data, byteOffset, instCount, className, propName) {
 		case "Vector2int16":
 			for (let i = 0; i < instCount; i++) {
 				values[i] = {
-					X: data.getInt16(byteOffset + 1 + i * 4, true),
-					Y: data.getInt16(byteOffset + 1 + i * 4 + 2, true),
+					X: data.int16(true),
+					Y: data.int16(true),
 				};
 			}
 			break;
 		case "CFrame":
-			var off = 0;
 			var cfs = [];
 
 			for (let i = 0; i < instCount; i++) {
 				var cf = [0, 0, 0];
-				var rotId = data.getUint8(byteOffset + 1 + off);
-				off += 1;
+				var rotId = data.uint8();
 
 				if (rotId !== 0) {
 					cf = [0, 0, 0, ...rotIds[rotId]];
-					// off += 36;
 				} else {
 					for (let j = 0; j < 9; j++) {
-						cf[j + 3] = data.getFloat32(byteOffset + 1 + off, true);
-						off += 4;
+						cf[j + 3] = data.float32(true);
 					}
 				}
 
 				cfs[i] = cf;
 			}
 
-			const posX = interleaveFloat(data, byteOffset + 1 + off, instCount);
-			const posY = interleaveFloat(
-				data,
-				byteOffset + 1 + off + instCount * 4,
-				instCount
-			);
-			const posZ = interleaveFloat(
-				data,
-				byteOffset + 1 + off + instCount * 8,
-				instCount
-			);
+			const posX = data.interleavedFloat(instCount);
+			const posY = data.interleavedFloat(instCount);
+			const posZ = data.interleavedFloat(instCount);
 
 			for (let i = 0; i < instCount; i++) {
 				const [eX, eY, eZ] = rotMatrixToEulerAngles(cfs[i].slice(3));
@@ -576,7 +518,7 @@ function ReadPropertyValue(data, byteOffset, instCount, className, propName) {
 			break;
 		case "Token":
 			// enum
-			var vals = interleaveUint32(data, byteOffset + 1, instCount);
+			var vals = data.interleavedUint32(instCount);
 			for (let i = 0; i < instCount; i++) {
 				var enumName = getEnumName(propName, className);
 				if (enumName) {
@@ -591,26 +533,20 @@ function ReadPropertyValue(data, byteOffset, instCount, className, propName) {
 		case "Vector3uint16":
 			for (let i = 0; i < instCount; i++) {
 				values[i] = {
-					X: data.getUint16(byteOffset + 1 + i * 6, true),
-					Y: data.getUint16(byteOffset + 1 + i * 6 + 2, true),
-					Z: data.getUint16(byteOffset + 1 + i * 6 + 4, true),
+					X: data.uint16(true),
+					Y: data.uint16(true),
+					Z: data.uint16(true),
 				};
 			}
 			break;
 		case "NumberSequence":
 			for (let i = 0; i < instCount; i++) {
-				var length = data.getUint32(byteOffset + 1 + i * 8, true);
+				var length = data.uint32(true);
 				values[i] = [];
 				for (let j = 0; j < length; j++) {
-					var time = data.getFloat32(byteOffset + 1 + i * 8 + 4 + j * 12, true);
-					var value = data.getFloat32(
-						byteOffset + 1 + i * 8 + 4 + j * 12 + 4,
-						true
-					);
-					var envelope = data.getFloat32(
-						byteOffset + 1 + i * 8 + 4 + j * 12 + 8,
-						true
-					);
+					var time = data.float32(true);
+					var value = data.float32(true);
+					var envelope = data.float32(true);
 					values[i].push({
 						Time: time,
 						Value: value,
@@ -625,28 +561,16 @@ function ReadPropertyValue(data, byteOffset, instCount, className, propName) {
 		case "NumberRange":
 			for (let i = 0; i < instCount; i++) {
 				values[i] = {
-					Min: data.getFloat32(byteOffset + 1 + i * 8, true),
-					Max: data.getFloat32(byteOffset + 1 + i * 8 + 4, true),
+					Min: data.float32(true),
+					Max: data.float32(true),
 				};
 			}
 			break;
 		case "Rect":
-			var minX = interleaveFloat(data, byteOffset + 1, instCount);
-			var minY = interleaveFloat(
-				data,
-				byteOffset + 1 + instCount * 4,
-				instCount
-			);
-			var maxX = interleaveFloat(
-				data,
-				byteOffset + 1 + instCount * 8,
-				instCount
-			);
-			var maxY = interleaveFloat(
-				data,
-				byteOffset + 1 + instCount * 12,
-				instCount
-			);
+			var minX = data.interleavedFloat(instCount);
+			var minY = data.interleavedFloat(instCount);
+			var maxX = data.interleavedFloat(instCount);
+			var maxY = data.interleavedFloat(instCount);
 
 			for (let i = 0; i < instCount; i++) {
 				values[i] = {
@@ -662,26 +586,23 @@ function ReadPropertyValue(data, byteOffset, instCount, className, propName) {
 			}
 			break;
 		case "PhysicalProperties":
-			var off = 0;
 			for (let i = 0; i < instCount; i++) {
-				var customPhysics = data.getUint8(byteOffset + 1 + off) === 1;
-				off += 1;
+				var customPhysics = data.uint8() === 1;
 				if (customPhysics) {
 					values[i] = {
-						Density: data.getFloat32(byteOffset + 1 + off, true),
-						Friction: data.getFloat32(byteOffset + 1 + off + 4, true),
-						Elasticity: data.getFloat32(byteOffset + 1 + off + 8, true),
-						FrictionWeight: data.getFloat32(byteOffset + 1 + off + 12, true),
-						ElasticityWeight: data.getFloat32(byteOffset + 1 + off + 16, true),
+						Density: data.float32(true),
+						Friction: data.float32(true),
+						Elasticity: data.float32(true),
+						FrictionWeight: data.float32(true),
+						ElasticityWeight: data.float32(true),
 					};
-					off += 20;
 				}
 			}
 			break;
 		case "Color3uint8":
-			var r = interleaveUint8(data, byteOffset + 1, instCount);
-			var g = interleaveUint8(data, byteOffset + 1 + instCount, instCount);
-			var b = interleaveUint8(data, byteOffset + 1 + instCount * 2, instCount);
+			var r = data.interleavedUint8(instCount);
+			var g = data.interleavedUint8(instCount);
+			var b = data.interleavedUint8(instCount);
 
 			for (let i = 0; i < instCount; i++) {
 				values[i] = {

@@ -2,7 +2,8 @@ import {
 	ReadPropertyValue,
 	ReadReferences,
 	ReadString,
-} from "./binaryTypeReader";
+} from "./BinaryTypeReader";
+import ByteReader from "./ByteReader";
 import ReadChunk from "./ChunkReader";
 import { arraysEqual } from "./util";
 
@@ -53,65 +54,47 @@ const signature = [
 	0x3c, 0x72, 0x6f, 0x62, 0x6c, 0x6f, 0x78, 0x21, 0x89, 0xff, 0x0d, 0x0a, 0x1a,
 	0x0a,
 ];
-const signatureLength = 14;
 
 function decode(buffer) {
 	const start = performance.now();
-	const data = new DataView(buffer);
-
-	// Get the position of the signature (might not be 0)
-	var sigPos = 0;
-	for (var i = 0; i < buffer.byteLength; i++) {
-		if (data.getUint8(i) == signature[0]) {
-			sigPos = i;
-			break;
-		}
-	}
+	const data = new ByteReader(buffer);
 
 	// Get the signature
 	var sig = [];
-	for (var i = 0; i < signatureLength; i++) {
-		sig.push(data.getUint8(i + sigPos));
+	for (var i = 0; i < signature.length; i++) {
+		sig.push(data.uint8());
 	}
 
 	console.assert(arraysEqual(sig, signature), "Invalid file signature.");
 	console.log("Valid file signature.");
 
 	// Get the version
-	var versionPos = sigPos + signatureLength;
-	var version = data.getUint16(versionPos, true);
+	var version = data.uint16(true);
 	console.log("Version:", version);
 
-	var headerPos = versionPos + 2;
 	var header = {
-		classCount: data.getUint32(headerPos, true),
-		instanceCount: data.getUint32(headerPos + 4, true),
+		classCount: data.uint32(true),
+		instanceCount: data.uint32(true),
 	};
+	data.move(8);
 	console.log("Header:", header);
 
 	// for each chunk get the signature, compressed length, uncompressed length, and data using ReadChunk(chunk: ArrayBuffer)
-	var chunkPos = headerPos + 16;
 	var chunk = {};
 	var instances = [];
 	var classes = [];
 	var output = [];
-	while (chunkPos < buffer.byteLength && chunk.signature !== "END\x00") {
-		chunk = ReadChunk(data, chunkPos);
-		// console.log("Chunk:", chunk);
-		chunkPos += 16 + chunk.dataLength;
-
-		const payload = new DataView(chunk.payload.buffer);
+	while (chunk.signature !== "END\x00") {
+		chunk = ReadChunk(data);
+		const payload = chunk.payload;
 
 		if (chunk.signature == "META") {
-			const arrayLength = payload.getUint32(0, true);
+			const arrayLength = payload.uint32(true);
 			const entries = [];
 
-			var offset = 4;
 			for (let i = 0; i < arrayLength; i++) {
-				const [key, keyLength] = ReadString(payload, offset);
-				offset += keyLength + 4;
-				const [value, valueLength] = ReadString(payload, offset);
-				offset += valueLength + 4;
+				const [key] = ReadString(payload);
+				const [value] = ReadString(payload);
 
 				entries.push({ key, value });
 			}
@@ -121,20 +104,14 @@ function decode(buffer) {
 		} else if (chunk.signature == "SSTR") {
 			// SSTR is currently unused
 		} else if (chunk.signature == "INST") {
-			const classId = payload.getInt32(0, true);
-			const [className, classNameLength] = ReadString(payload, 4);
-			const hasService = payload.getUint8(4 + 4 + classNameLength, true);
-			const instLength = payload.getUint32(4 + 4 + classNameLength + 1, true);
-			const instIds = ReadReferences(
-				payload,
-				4 + 4 + classNameLength + 1 + 4,
-				instLength
-			);
+			const classId = payload.int32(true);
+			const [className, classNameLength] = ReadString(payload);
+			const hasService = payload.uint8(true);
+			const instLength = payload.uint32(true);
+			const instIds = ReadReferences(payload, instLength);
 			const isService = [];
 			for (let i = 0; i < instLength; i++) {
-				isService.push(
-					payload.getUint8(4 + 4 + classNameLength + 1 + 4 + instLength + i)
-				);
+				isService.push(payload.uint8() == 1);
 			}
 
 			// console.log("INST classId:", classId);
@@ -156,11 +133,10 @@ function decode(buffer) {
 				classes[classId].instances.push(instId);
 			}
 		} else if (chunk.signature == "PROP") {
-			const classId = payload.getInt32(0, true);
-			var [propName, propNameLength] = ReadString(payload, 4);
+			const classId = payload.int32(true);
+			var [propName, propNameLength] = ReadString(payload);
 			const value = ReadPropertyValue(
 				payload,
-				4 + 4 + propNameLength,
 				classes[classId].instances.length,
 				classes[classId].className,
 				propName
@@ -180,9 +156,10 @@ function decode(buffer) {
 			// console.log("PROP value type:", value.type);
 			// console.log("PROP values:", value.values);
 		} else if (chunk.signature == "PRNT") {
-			const assocLength = payload.getUint32(1, true);
-			const children = ReadReferences(payload, 5, assocLength);
-			const parents = ReadReferences(payload, 5 + assocLength * 4, assocLength);
+			payload.move(1);
+			const assocLength = payload.uint32(true);
+			const children = ReadReferences(payload, assocLength);
+			const parents = ReadReferences(payload, assocLength);
 
 			var childId = 0;
 			var parentId = 0;
@@ -225,9 +202,5 @@ function decode(buffer) {
 
 	return output;
 }
-
-// test
-// const testFile = fs.readFileSync("test.rbxm");
-// decode(testFile);
 
 export { decode };

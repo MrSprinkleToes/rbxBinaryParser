@@ -9,40 +9,40 @@
 
 // var lz4 = require("lz4js");
 import LZ4BlockJS from "./lz4";
+import ByteReader from "./ByteReader";
 
 /**
  * Reads a chunk of data
  * @param {DataView} chunk
  */
-export default function ReadChunk(data, offset) {
+export default function ReadChunk(reader) {
 	const signature = [
-		String.fromCharCode(data.getUint8(offset + 0)),
-		String.fromCharCode(data.getUint8(offset + 1)),
-		String.fromCharCode(data.getUint8(offset + 2)),
-		String.fromCharCode(data.getUint8(offset + 3)),
+		String.fromCharCode(reader.uint8()),
+		String.fromCharCode(reader.uint8()),
+		String.fromCharCode(reader.uint8()),
+		String.fromCharCode(reader.uint8()),
 	].join("");
 
-	const compressedLength = data.getUint32(offset + 4, true);
-	const uncompressedLength = data.getUint32(offset + 8, true);
+	const compressedLength = reader.uint32(true);
+	const uncompressedLength = reader.uint32(true);
 	const dataLength =
 		compressedLength == 0 ? uncompressedLength : compressedLength;
+	reader.move(4);
 
 	// might be incorrectly copying the chunk payload?
 	const chunkData = new Uint8Array(dataLength);
 	for (var i = 0; i < dataLength; i++) {
-		chunkData[i] = data.getUint8(offset + 16 + i);
+		chunkData[i] = reader.uint8();
 	}
 
 	var payload;
 	// Decompress the data if it is compressed
 	if (compressedLength != 0) {
-		payload = LZ4BlockJS.prototype.decodeBlock(
-			chunkData,
-			0,
-			uncompressedLength
+		payload = new ByteReader(
+			LZ4BlockJS.prototype.decodeBlock(chunkData, 0, uncompressedLength).buffer
 		);
 	} else {
-		payload = chunkData;
+		payload = new ByteReader(chunkData.buffer);
 	}
 
 	return {
