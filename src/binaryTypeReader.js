@@ -2,6 +2,7 @@
 // Length: uint32 - Length of the string
 // Bytes: []uint8 - The string
 
+import { getEnumName, getEnumValue } from "./enumFetcher";
 import { rotMatrixToEulerAngles } from "./util";
 
 // References: []zint32b~4
@@ -358,7 +359,7 @@ function interleaveFloat(data, byteOffset, itemCount) {
 	return interleaveUint32(data, byteOffset, itemCount, (val) => float(val));
 }
 
-function ReadPropertyValue(data, byteOffset, instCount) {
+function ReadPropertyValue(data, byteOffset, instCount, className, propName) {
 	const typeId = data.getUint8(byteOffset);
 	const type = valueTypes[typeId];
 
@@ -575,7 +576,14 @@ function ReadPropertyValue(data, byteOffset, instCount) {
 			break;
 		case "Token":
 			// enum
-			values = interleaveUint32(data, byteOffset + 1, instCount);
+			var vals = interleaveUint32(data, byteOffset + 1, instCount);
+			for (let i = 0; i < instCount; i++) {
+				var enumName = getEnumName(propName, className);
+				if (enumName) {
+					var enumValue = getEnumValue(enumName, vals[i]);
+					values[i] = enumValue;
+				}
+			}
 			break;
 		case "Reference":
 			// TODO: implement

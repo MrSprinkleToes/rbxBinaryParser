@@ -161,7 +161,9 @@ function decode(buffer) {
 			const value = ReadPropertyValue(
 				payload,
 				4 + 4 + propNameLength,
-				classes[classId].instances.length
+				classes[classId].instances.length,
+				classes[classId].className,
+				propName
 			);
 
 			if (value.values) {
