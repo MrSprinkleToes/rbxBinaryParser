@@ -15,3 +15,7 @@ jobs:
       run: |
         wget -O apiDump.json https://setup.rbxcdn.com/version-2bc6aa9c27a14060-API-Dump.json
         echo "API dump saved to 'apiDump.json'."
+    
+    - uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: Automatically update API dump
