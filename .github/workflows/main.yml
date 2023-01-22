@@ -1,0 +1,17 @@
+on:
+  workflow_dispatch:
+
+jobs:
+  apidump:
+    name: Update API dump.
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get latest version.
+      run: |
+        version=$(wget -qO- https://setup.rbxcdn.com/versionQTStudio)
+        echo "Latest version: $version"
+      
+    - name: Download latest API dump.
+      run: |
+        wget -O apiDump.json https://setup.rbxcdn.com/version-2bc6aa9c27a14060-API-Dump.json
+        echo "API dump saved to 'apiDump.json'."
