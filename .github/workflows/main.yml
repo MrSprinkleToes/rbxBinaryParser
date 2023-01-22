@@ -5,6 +5,9 @@ jobs:
     name: Update API dump.
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout repo.
+      uses: actions/checkout@v2.3.4
+        
     - name: Get latest version.
       run: |
         version=$(wget -qO- https://setup.rbxcdn.com/versionQTStudio)
@@ -12,9 +15,9 @@ jobs:
       
     - name: Download latest API dump.
       run: |
-        wget https://setup.rbxcdn.com/version-2bc6aa9c27a14060-API-Dump.json -O ../../src/apiDump.json
-        echo "API dump saved to './src/apiDump.json'."
+        wget https://setup.rbxcdn.com/version-2bc6aa9c27a14060-API-Dump.json -O src/apiDump.json
+        echo "API dump saved to 'src/apiDump.json'."
     
-    - name: Git Auto Commit
+    - name: Git auto commit.
       uses: stefanzweifel/git-auto-commit-action@v4.16.0
       
