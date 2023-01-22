@@ -21,8 +21,10 @@ jobs:
         if [[ $version -ne $lastversion ]]
         then
           echo "NEW=1" >> $GITHUB_ENV
+          echo "New version!"
         else
           echo "NEW=0" >> $GITHUB_ENV
+          echo "No new version."
         fi
       
     - name: Download latest API dump.
@@ -32,6 +34,6 @@ jobs:
         echo "API dump saved to 'src/ApiDump.json'."
     
     - name: Git auto commit.
-      if: ${{ env.NEW == 0 }}
+      if: ${{ env.NEW == 1 }}
       uses: stefanzweifel/git-auto-commit-action@v4.16.0
       
