@@ -1,4 +1,6 @@
-on: workflow_dispatch
+on:
+  schedule:
+    - cron: "0 0 * * *"
 permissions: write-all
 
 jobs:
@@ -13,12 +15,21 @@ jobs:
       run: |
         version=$(wget -qO- https://setup.rbxcdn.com/versionQTStudio)
         echo "Latest version: $version"
+        lastversion=$(cat .github/rbx_version.txt)
+        if [[ $version -eq $lastversion ]]
+        then
+          echo "NEW=1" >> "$GITHUB_ENV"
+        else
+          echo "NEW=0" >> "$GITHUB_ENV"
+        fi
       
     - name: Download latest API dump.
+      if: env.NEW == 1
       run: |
-        wget https://setup.rbxcdn.com/version-2bc6aa9c27a14060-API-Dump.json -O src/apiDump.json
-        echo "API dump saved to 'src/apiDump.json'."
+        wget https://setup.rbxcdn.com/${version}-API-Dump.json -O src/ApiDump.json
+        echo "API dump saved to 'src/ApiDump.json'."
     
     - name: Git auto commit.
+      if: env.NEW == 1
       uses: stefanzweifel/git-auto-commit-action@v4.16.0
       
