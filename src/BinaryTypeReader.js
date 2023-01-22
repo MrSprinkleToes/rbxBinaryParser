@@ -1,7 +1,7 @@
 // String:
 // Length: uint32 - Length of the string
 // Bytes: []uint8 - The string
-
+https://github.com/MrSprinkleToes/rbxBinaryParser/blob/master/src/binaryTypeReader.js
 import { getEnumName, getEnumValue } from "./EnumFetcher";
 import { rotMatrixToEulerAngles } from "./util";
 
