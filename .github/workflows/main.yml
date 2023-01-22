@@ -20,18 +20,18 @@ jobs:
         echo "Last version: $lastversion"
         if [[ $version -eq $lastversion ]]
         then
-          echo "NEW=1" >> "$GITHUB_ENV"
+          echo "NEW=true" >> "$GITHUB_ENV"
         else
-          echo "NEW=0" >> "$GITHUB_ENV"
+          echo "NEW=false" >> "$GITHUB_ENV"
         fi
       
     - name: Download latest API dump.
-      if: env.NEW == 1
+      if: env.NEW == 'true'
       run: |
         wget https://setup.rbxcdn.com/${version}-API-Dump.json -O src/ApiDump.json
         echo "API dump saved to 'src/ApiDump.json'."
     
     - name: Git auto commit.
-      if: env.NEW == 1
+      if: env.NEW == 'true'
       uses: stefanzweifel/git-auto-commit-action@v4.16.0
       
