@@ -2,6 +2,8 @@
 
 Roblox binary file reader for JavaScript.
 
+A `.rbxl` or `.rbxm` file is passed to the library as an ArrayBuffer, which is then read and decoded into an Object representing the contents of the file.
+
 # Using
 
 The latest versions can be found in `dist/server` and `dist/client`.
